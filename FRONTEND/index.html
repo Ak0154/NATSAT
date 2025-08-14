@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NANSAT - Access</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@700&family=Manrope:wght@400;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+  <!-- Three.js + examples (for postprocessing if needed later) -->
+  <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.157.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <style type="text/tailwindcss">
+    :root {
+      --dark-blue: #0a192f;
+      --light-accent: #64ffda;
+      --text-light: #ccd6f6;
+      --text-darker: #8892b0;
+      --button-bg: #1e3a5f;
+      --button-hover-bg: #2a4c7a;
+    }
+    body {
+      font-family: 'Manrope', sans-serif;
+      background: radial-gradient(1200px 1200px at 70% 20%, rgba(100,255,218,0.06), transparent 60%),
+                  radial-gradient(900px 900px at 10% 80%, rgba(100,255,218,0.04), transparent 60%),
+                  #0a192f;
+      color: var(--text-light);
+      overflow: hidden;
+    }
+    /* Fullscreen space canvas */
+    #bg-canvas {
+      position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0;
+    }
+    .main-content {
+      background: rgba(10, 25, 47, 0.85);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(100, 255, 218, 0.1);
+      position: relative; z-index: 2;
+    }
+    .animated-title {
+      font-family: 'Exo 2', sans-serif;
+      background: linear-gradient(90deg, var(--text-light), var(--light-accent), var(--text-light));
+      background-size: 200% auto;
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      animation: text-shine 5s linear infinite;
+    }
+    @keyframes text-shine { to { background-position: 200% center; } }
+
+    .btn { @apply bg-[var(--button-bg)] text-[var(--text-light)] font-bold py-4 px-6 rounded-full flex items-center justify-center transition-all duration-300 ease-in-out text-lg; }
+    .btn:hover { @apply bg-[var(--button-hover-bg)] shadow-[0_0_15px_var(--light-accent)] -translate-y-1; }
+    .btn-icon { @apply w-6 h-6 mr-3; filter: drop-shadow(0 0 0 transparent); transition: filter .3s ease; }
+    .btn:hover .btn-icon { filter: drop-shadow(0 0 8px var(--light-accent)); }
+
+    /* 3D logo container */
+    #logo-container { width: 92px; height: 92px; cursor: grab; position: relative; z-index: 2; }
+    #logo-container:active { cursor: grabbing; }
+
+    /* Soft vignette overlay to blend canvas + UI */
+    .vignette { position: fixed; inset: 0; z-index: 1; pointer-events: none; background: radial-gradient(circle at 50% 50%, transparent 55%, rgba(0,0,0,0.45) 100%); }
+  </style>
+</head>
+
+<body class="antialiased">
+  <canvas id="bg-canvas"></canvas>
+  <div class="vignette"></div>
+
+  <div class="min-h-screen flex flex-col items-center justify-center p-4 relative">
+    <div class="w-full max-w-2xl mx-auto text-center main-content p-6 sm:p-10 rounded-2xl shadow-2xl">
+      <header class="mb-8">
+        <div class="flex justify-center items-center gap-3 sm:gap-5">
+          <div id="logo-container"></div>
+          <h1 class="animated-title text-5xl sm:text-7xl font-extrabold">NANSAT</h1>
+        </div>
+        <p class="text-base sm:text-lg text-[var(--light-accent)] mt-2">by Team AetherFlux</p>
+      </header>
+
+      <main>
+        <p class="text-xl text-[var(--text-darker)] mb-12">Your gateway to satellite insights, anywhere, anytime.</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
+          <a class="btn" href="login.html">
+            <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A11.953 11.953 0 0012 13.5c2.998 0 5.74 1.1 7.843 2.918m-15.686 0A8.959 8.959 0 003 12c0-.778.099-1.533.284-2.253m0 0A11.953 11.953 0 0012 10.5c-2.998 0-5.74-1.1-7.843-2.918"/></svg>
+            Access Web App
+          </a>
+          <a class="btn" href="https://1drv.ms/u/c/d848b58d695693b2/EWB6wKa4_ThDkxi_ayuq0BkBRDE4GUhD9xj3yW_mCW6YPQ?e=ZuBANr" target="_blank">
+            <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"/></svg>
+            Download Android
+          </a>
+          <a class="btn" href="#" style="cursor: not-allowed; opacity: 0.6;">
+            <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 8.25V6a2.25 2.25 0 00-2.25-2.25H9.75A2.25 2.25 0 007.5 6v12a2.25 2.25 0 002.25 2.25h7.5a2.25 2.25 0 002.25-2.25V9.75m-9 3.75h9"/></svg>
+            Get iOS App (Coming Soon)
+          </a>
+          <a class="btn" href="#" style="cursor: not-allowed; opacity: 0.6;">
+            <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317,4.369a20.763,20.763,0,0,0-4.885-1.515.074.074,0,0,0-.079.037,13.9,13.9,0,0,0-4.7,2.445,14.34,14.34,0,0,0-4.7-2.445.074.074,0,0,0-.079-.037A20.763,20.763,0,0,0,3.683,4.369a.076.076,0,0,0-.037.079,16.024,16.024,0,0,0,1.949,6.81,15.156,15.156,0,0,0,4.85,4.6,1.36,1.36,0,0,0,.418.2,1.46,1.46,0,0,0,.549.081,1.35,1.35,0,0,0,.418-.2,15.156,15.156,0,0,0,4.85-4.6,16.024,16.024,0,0,0,1.949-6.81.076.076,0,0,0-.037-.079ZM10.02,13.3a1.58,1.58,0,0,1-1.58-1.58,1.58,1.58,0,0,1,1.58-1.58,1.58,1.58,0,0,1,1.58,1.58A1.58,1.58,0,0,1,10.02,13.3Zm3.96,0a1.58,1.58,0,0,1-1.58-1.58,1.58,1.58,0,0,1,1.58-1.58,1.58,1.58,0,0,1,1.58,1.58A1.58,1.58,0,0,1,13.98,13.3Z"/></svg>
+            Discord (Coming Soon)
+          </a>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+
+    // ---------- STARFIELD BACKGROUND ----------
+    const bgCanvas = document.getElementById('bg-canvas');
+    const bgRenderer = new THREE.WebGLRenderer({ canvas: bgCanvas, antialias: true });
+    bgRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    bgRenderer.setSize(window.innerWidth, window.innerHeight);
+
+    const bgScene = new THREE.Scene();
+    const bgCamera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+    bgCamera.position.z = 8;
+
+    // Stars
+    const starCount = 6000;
+    const starPositions = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount * 3; i += 3) {
+      const r = 500 + Math.random() * 1400; // spread
+      const theta = Math.acos(THREE.MathUtils.randFloatSpread(2));
+      const phi = THREE.MathUtils.randFloatSpread(Math.PI * 2);
+      starPositions[i]   = r * Math.sin(theta) * Math.cos(phi);
+      starPositions[i+1] = r * Math.sin(theta) * Math.sin(phi);
+      starPositions[i+2] = r * Math.cos(theta);
+    }
+    const starGeom = new THREE.BufferGeometry();
+    starGeom.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    const starMat = new THREE.PointsMaterial({ size: 0.9, sizeAttenuation: true, color: 0x9fd9cc, transparent: true, opacity: 0.9 });
+    const starPoints = new THREE.Points(starGeom, starMat);
+    bgScene.add(starPoints);
+
+    // Subtle nebula fog
+    bgScene.fog = new THREE.FogExp2(0x071522, 0.0006);
+
+    // ---------- LOGO SCENE (EARTH + SATELLITE) ----------
+    const logoContainer = document.getElementById('logo-container');
+    const logoScene = new THREE.Scene();
+
+    const logoRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    logoRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    logoRenderer.setSize(logoContainer.clientWidth, logoContainer.clientHeight);
+    logoContainer.appendChild(logoRenderer.domElement);
+
+    const logoCamera = new THREE.PerspectiveCamera(35, logoContainer.clientWidth / logoContainer.clientHeight, 0.1, 100);
+    logoCamera.position.set(0, 0, 10);
+
+    // Lights (warm "sun" + ambient fill)
+    const ambient = new THREE.AmbientLight(0xffffff, 0.45);
+    logoScene.add(ambient);
+    const sun = new THREE.DirectionalLight(0xfff1d6, 1.15);
+    sun.position.set(6, 3, 4);
+    sun.castShadow = false;
+    logoScene.add(sun);
+
+    // Textures from threejs examples
+    const loader = new THREE.TextureLoader();
+    const texBase = 'https://threejs.org/examples/textures/planets/';
+    const earthDay = loader.load(texBase + 'earth_atmos_2048.jpg');
+    const earthSpec = loader.load(texBase + 'earth_specular_2048.jpg');
+    const earthNight = loader.load(texBase + 'earth_lights_2048.png');
+    const earthClouds = loader.load(texBase + 'earth_clouds_1024.png');
+
+    // Earth
+    const earthGroup = new THREE.Group();
+    logoScene.add(earthGroup);
+
+    const earthGeo = new THREE.SphereGeometry(2.6, 64, 64);
+    const earthMat = new THREE.MeshPhongMaterial({
+      map: earthDay,
+      specularMap: earthSpec,
+      specular: new THREE.Color(0x222222),
+      shininess: 12
+    });
+    const earthMesh = new THREE.Mesh(earthGeo, earthMat);
+    earthGroup.add(earthMesh);
+
+    // City lights (slightly larger sphere with additive blend)
+    const lightsGeo = new THREE.SphereGeometry(2.601, 64, 64);
+    const lightsMat = new THREE.MeshBasicMaterial({ map: earthNight, blending: THREE.AdditiveBlending, transparent: true, opacity: 0.85 });
+    const lightsMesh = new THREE.Mesh(lightsGeo, lightsMat);
+    earthGroup.add(lightsMesh);
+
+    // Clouds
+    earthClouds.wrapS = earthClouds.wrapT = THREE.RepeatWrapping;
+    const cloudGeo = new THREE.SphereGeometry(2.68, 64, 64);
+    const cloudMat = new THREE.MeshPhongMaterial({ map: earthClouds, transparent: true, opacity: 0.45, depthWrite: false });
+    const cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
+    earthGroup.add(cloudMesh);
+
+    // Atmospheric glow (Fresnel shader)
+    const atmosphereGeo = new THREE.SphereGeometry(2.78, 64, 64);
+    const atmosphereMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      uniforms: { c: { value: 0.6 }, p: { value: 3.2 }, glowColor: { value: new THREE.Color(0x64ffda) }, viewVector: { value: new THREE.Vector3(0,0,10) } },
+      vertexShader: `
+        uniform vec3 viewVector; uniform float c; uniform float p; varying float intensity;
+        void main(){ vec3 vNormal = normalize(normalMatrix * normal);
+          vec3 vNormel = normalize(normalMatrix * viewVector);
+          intensity = pow(c - dot(vNormal, vNormel), p);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 glowColor; varying float intensity;
+        void main(){ gl_FragColor = vec4(glowColor, 1.0) * intensity; }
+      `
+    });
+    const atmosphere = new THREE.Mesh(atmosphereGeo, atmosphereMat);
+    earthGroup.add(atmosphere);
+
+    // Satellite
+    const satelliteGroup = new THREE.Group();
+
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(0.5, 0.5, 0.7),
+      new THREE.MeshStandardMaterial({ color: 0xbfc5ce, metalness: 0.7, roughness: 0.35 })
+    );
+    const panelMat = new THREE.MeshStandardMaterial({ color: 0x1a73e8, metalness: 0.2, roughness: 0.5, emissive: 0x081a44, emissiveIntensity: 0.6 });
+    const panel1 = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.6), panelMat);
+    const panel2 = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.6), panelMat);
+    panel1.position.x = 1.35; panel2.position.x = -1.35; panel1.rotation.y = Math.PI; // make both double-sided visually
+    const boom = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.9, 12), new THREE.MeshStandardMaterial({ color: 0x9aa3ad, metalness: 0.8, roughness: 0.2 }));
+    boom.rotation.z = Math.PI / 2; boom.position.z = -0.5;
+
+    satelliteGroup.add(body, panel1, panel2, boom);
+
+    const orbitRadius = 4.2;
+    const orbitTilt = 0.41; // ~23.5deg is earth tilt; use separate for orbit aesthetics
+
+    const orbit = new THREE.Object3D();
+    orbit.rotation.set(orbitTilt, 0.2, 0.1);
+    logoScene.add(orbit);
+
+    const satPivot = new THREE.Object3D();
+    satPivot.position.set(0, 0, 0);
+    orbit.add(satPivot);
+
+    satelliteGroup.position.set(orbitRadius, 0, 0);
+    satPivot.add(satelliteGroup);
+
+    // Orbit path (thin line)
+    const circlePts = [];
+    const segs = 128;
+    for (let i = 0; i <= segs; i++) {
+      const a = (i / segs) * Math.PI * 2;
+      circlePts.push(new THREE.Vector3(Math.cos(a) * orbitRadius, 0, Math.sin(a) * orbitRadius));
+    }
+    const orbitGeo = new THREE.BufferGeometry().setFromPoints(circlePts);
+    const orbitLine = new THREE.LineLoop(orbitGeo, new THREE.LineBasicMaterial({ color: 0x365d74, transparent: true, opacity: 0.7 }));
+    orbit.add(orbitLine);
+
+    // --------- INTERACTION (drag to rotate, with inertia) ---------
+    let isDragging = false;
+    let lastX = 0, lastY = 0;
+    let velocityX = 0, velocityY = 0;
+
+    const onDown = (e) => {
+      isDragging = true;
+      const t = e.touches ? e.touches[0] : e;
+      lastX = t.clientX; lastY = t.clientY;
+    };
+    const onMove = (e) => {
+      if (!isDragging) return;
+      const t = e.touches ? e.touches[0] : e;
+      const dx = (t.clientX - lastX) * 0.005;
+      const dy = (t.clientY - lastY) * 0.005;
+      earthGroup.rotation.y += dx;
+      earthGroup.rotation.x += dy;
+      lastX = t.clientX; lastY = t.clientY;
+      velocityX = dx; velocityY = dy;
+    };
+    const onUp = () => { isDragging = false; };
+
+    logoContainer.addEventListener('mousedown', onDown);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    logoContainer.addEventListener('touchstart', onDown, { passive: true });
+    window.addEventListener('touchmove', onMove, { passive: true });
+    window.addEventListener('touchend', onUp);
+
+    // Button hover -> subtle pulse
+    let pulse = 0;
+    const buttons = document.querySelectorAll('.btn');
+    buttons.forEach(btn => {
+      btn.addEventListener('mouseenter', () => { pulse = 0.015; });
+      btn.addEventListener('mouseleave', () => { pulse = 0.0; });
+    });
+
+    // ---------- ANIMATION LOOP ----------
+    const clock = new THREE.Clock();
+
+    function animate(){
+      requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+
+      // Starfield slow parallax
+      starPoints.rotation.y += 0.0002;
+      starPoints.rotation.x += 0.0001;
+
+      // Earth base rotation + inertia decay
+      earthGroup.rotation.y += 0.003 + velocityX * 0.95;
+      earthGroup.rotation.x += 0.0003 + velocityY * 0.95;
+      velocityX *= 0.92; velocityY *= 0.92;
+
+      // Clouds drift
+      cloudMesh.rotation.y += 0.0012;
+
+      // Satellite orbit
+      satPivot.rotation.y = t * 0.8; // angular speed
+      satelliteGroup.lookAt(earthGroup.position);
+
+      // Soft breathing scale on interaction
+      const s = 1 + Math.sin(t * 3.2) * pulse;
+      earthMesh.scale.setScalar(s);
+      lightsMesh.scale.setScalar(s);
+      cloudMesh.scale.setScalar(s * 1.002);
+      atmosphere.scale.setScalar(s * 1.005);
+
+      // Atmosphere view vector update
+      atmosphere.material.uniforms.viewVector.value = new THREE.Vector3().subVectors(logoCamera.position, atmosphere.position);
+
+      // Render both scenes
+      bgRenderer.render(bgScene, bgCamera);
+      logoRenderer.render(logoScene, logoCamera);
+    }
+    animate();
+
+    // ---------- RESIZE ----------
+    function onResize(){
+      // background
+      bgCamera.aspect = window.innerWidth / window.innerHeight;
+      bgCamera.updateProjectionMatrix();
+      bgRenderer.setSize(window.innerWidth, window.innerHeight);
+
+      // logo
+      const w = logoContainer.clientWidth, h = logoContainer.clientHeight;
+      logoCamera.aspect = w / h; logoCamera.updateProjectionMatrix();
+      logoRenderer.setSize(w, h);
+    }
+    window.addEventListener('resize', onResize);
+  </script>
+</body>
+</html>

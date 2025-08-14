@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NANSAT - Analysis</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-color-start: #0a192f;
+            --bg-color-end: #1a263a;
+            --card-bg-dark: rgba(10, 25, 47, 0.85);
+            --text-light: #e6f1ff;
+            --primary-color: #64ffda;
+            --accent-blue: #1e90ff;
+            --accent-cyan: #00bcd4;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a081a;
+            background-image: url('background.jpg');
+            background-position: center;
+            background-attachment: fixed;
+            background-size: cover;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            z-index: 1;
+        }
+        .upload-card {
+            z-index: 10;
+            background: var(--card-bg-dark);
+            backdrop-filter: blur(8px);
+            border: 1.5px solid var(--primary-color);
+            box-shadow: 0 0 24px rgba(100,255,218,0.12);
+            padding: 2rem;
+            border-radius: 1rem;
+            max-width: 500px;
+            width: 100%;
+        }
+        .gradient-button {
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-blue), var(--accent-cyan));
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .gradient-button:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 8px 24px rgba(30,144,255,0.25);
+        }
+        img {
+            max-width: 100%;
+            border-radius: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        pre {
+            background: rgba(26, 32, 54, 0.8);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-card">
+        <h1 class="text-3xl font-bold text-center mb-6 font-orbitron text-[var(--primary-color)]">Analysis</h1>
+        <form id="form" class="space-y-4">
+            <div>
+                <label class="block text-sm mb-1 text-[var(--accent-blue)]">Image 1</label>
+                <input type="file" name="image1" accept="image/*" required class="w-full text-sm text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[var(--primary-color)] file:text-black hover:file:bg-[var(--accent-blue)]">
+            </div>
+            <div>
+                <label class="block text-sm mb-1 text-[var(--accent-blue)]">Image 2</label>
+                <input type="file" name="image2" accept="image/*" required class="w-full text-sm text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[var(--primary-color)] file:text-black hover:file:bg-[var(--accent-blue)]">
+            </div>
+            <button type="submit" class="w-full py-3 rounded-full text-white font-bold gradient-button">Upload & Analyze</button>
+        </form>
+        <div class="mt-6 text-sm text-gray-300" id="out"></div>
+    </div>
+
+    <script>
+        // Redirect if not logged in
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+            window.location.href = "login.html";
+        }
+
+        document.getElementById("form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const out = document.getElementById("out");
+            const fd = new FormData(e.target);
+
+            out.textContent = "Uploading and analyzing...";
+
+            try {
+                const res = await fetch("http://127.0.0.1:8000/upload", {
+                    method: "POST",
+                    headers: {
+                        Authorization: "Bearer " + token
+                    },
+                    body: fd
+                });
+                const data = await res.json();
+
+                if (!res.ok) throw new Error(data.detail || "Upload failed");
+
+                let html = "";
+
+                if (data.image_a_url && data.image_b_url) {
+                    html += `<p class="mt-4 font-semibold text-[var(--primary-color)]">Uploaded Images:</p>
+                             <img src="${data.image_a_url}">
+                             <img src="${data.image_b_url}">`;
+                }
+                if (data.change_mask_url) {
+                    html += `<p class="mt-4 font-semibold text-[var(--primary-color)]">Change Mask:</p>
+                             <img src="${data.change_mask_url}">`;
+                }
+                if (data.analysis) {
+                    html += `<p class="mt-4 font-semibold text-[var(--primary-color)]">Analysis:</p>
+                             <pre>${data.analysis}</pre>`;
+                }
+
+                out.innerHTML = html;
+            } catch (err) {
+                out.textContent = "Error: " + err.message;
+            }
+        });
+    </script>
+</body>
+</html>
